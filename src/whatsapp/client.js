@@ -19,9 +19,14 @@ const client = new Client({
             '--disable-dev-shm-usage',
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
-            '--no-zygote',
-            '--single-process',
-            '--disable-gpu'
+            '--disable-gpu',
+            '--disable-extensions',
+            '--disable-background-networking',
+            '--disable-default-apps',
+            '--disable-sync',
+            '--metrics-recording-only',
+            '--mute-audio',
+            '--no-default-browser-check'
         ]
     }
 });
