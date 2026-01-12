@@ -112,7 +112,10 @@ router.post('/send', async (req, res) => {
 // Send welcome message with license key data
 router.post('/send-welcome', async (req, res) => {
     try {
+        console.log('📨 Send-welcome request received:', JSON.stringify(req.body));
+
         if (!isReady()) {
+            console.log('❌ WhatsApp not ready');
             return res.status(400).json({
                 success: false,
                 error: 'WhatsApp is not connected'
@@ -122,6 +125,7 @@ router.post('/send-welcome', async (req, res) => {
         const { phone, key, email, webappLink } = req.body;
 
         if (!phone || !key || !email) {
+            console.log('❌ Missing required fields');
             return res.status(400).json({
                 success: false,
                 error: 'Phone, key, and email are required'
@@ -137,6 +141,7 @@ router.post('/send-welcome', async (req, res) => {
         }
 
         const formattedPhone = `${cleanPhone}@c.us`;
+        console.log('📱 Sending to:', formattedPhone);
 
         // Create welcome message
         const welcomeMessage = `🎉 *مرحباً بك في EstateNexus!*
@@ -167,7 +172,13 @@ ${webappLink || 'https://x.com'}
 مع تحياتنا،
 *فريق EstateNexus* 🏢`;
 
-        await client.sendMessage(formattedPhone, welcomeMessage);
+        // Add timeout to prevent hanging
+        const sendPromise = client.sendMessage(formattedPhone, welcomeMessage);
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Message send timeout after 30 seconds')), 30000)
+        );
+
+        await Promise.race([sendPromise, timeoutPromise]);
 
         console.log(`✅ Welcome message sent to ${phone}`);
 
@@ -177,7 +188,8 @@ ${webappLink || 'https://x.com'}
             phone: formattedPhone
         });
     } catch (error) {
-        console.error('Error sending welcome message:', error);
+        console.error('❌ Error sending welcome message:', error.message);
+        console.error('Full error:', error);
         res.status(500).json({
             success: false,
             error: error.message || 'Failed to send welcome message'
