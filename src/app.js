@@ -4,9 +4,36 @@ const whatsappRoutes = require('./routes/whatsapp.routes');
 
 const app = express();
 
+// Parse allowed origins from environment variable (comma-separated)
+const getAllowedOrigins = () => {
+    const envOrigins = process.env.FRONTEND_URL;
+    if (!envOrigins) {
+        return ['http://localhost:5173', 'http://localhost:3000'];
+    }
+    return envOrigins.split(',').map(origin => origin.trim());
+};
+
 // Middleware
 app.use(cors({
-    origin: process.env.FRONTEND_URL || ['http://localhost:5173', 'http://localhost:3000'],
+    origin: (origin, callback) => {
+        const allowedOrigins = getAllowedOrigins();
+
+        // Allow requests with no origin (mobile apps, curl, etc)
+        if (!origin) {
+            return callback(null, true);
+        }
+
+        // Check if origin matches allowed origins or is a Vercel preview deployment
+        const isAllowed = allowedOrigins.some(allowed => origin === allowed) ||
+            origin.includes('vercel.app') ||
+            origin.includes('localhost');
+
+        if (isAllowed) {
+            return callback(null, true);
+        }
+
+        callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
