@@ -55,11 +55,18 @@ app.use((req, res) => {
 
 // Error handler
 app.use((err, req, res, next) => {
-    console.error('Error:', err);
-    res.status(500).json({
-        error: 'Internal server error',
-        message: err.message
+    const statusCode = err.statusCode || 500;
+    const message = err.message || 'Internal server error';
+    
+    console.error(`[Error] ${req.method} ${req.path}:`, err);
+    
+    res.status(statusCode).json({
+        success: false,
+        error: statusCode === 500 ? 'Internal server error' : err.name,
+        message: message,
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
 });
+
 
 module.exports = app;

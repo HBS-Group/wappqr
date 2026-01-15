@@ -1,16 +1,16 @@
 const router = require('express').Router();
-const { client, getQR, isReady, isInitializing } = require('../whatsapp/client');
+const whatsapp = require('../whatsapp/client');
 
 // Get QR Code endpoint
 router.get('/qr', (req, res) => {
-    if (isReady()) {
+    if (whatsapp.isReady()) {
         return res.json({
             status: 'connected',
             message: 'WhatsApp is already connected'
         });
     }
 
-    const qr = getQR();
+    const qr = whatsapp.getQR();
 
     if (qr) {
         return res.json({
@@ -19,7 +19,7 @@ router.get('/qr', (req, res) => {
         });
     }
 
-    if (isInitializing()) {
+    if (whatsapp.isInitializing()) {
         return res.json({
             status: 'loading',
             message: 'WhatsApp is initializing...'
@@ -35,23 +35,30 @@ router.get('/qr', (req, res) => {
 // Check connection status
 router.get('/status', (req, res) => {
     res.json({
-        connected: isReady(),
-        initializing: isInitializing(),
-        hasQR: !!getQR()
+        connected: whatsapp.isReady(),
+        initializing: whatsapp.isInitializing(),
+        hasQR: !!whatsapp.getQR()
     });
 });
 
 // Get WhatsApp profile information
 router.get('/profile', async (req, res) => {
     try {
-        if (!isReady()) {
+        if (!whatsapp.isReady()) {
             return res.status(400).json({
                 success: false,
                 error: 'WhatsApp is not connected'
             });
         }
 
-        const info = await client.info;
+        const info = await whatsapp.getProfileInfo();
+
+        if (!info) {
+            return res.status(500).json({
+                success: false,
+                error: 'Could not fetch profile information'
+            });
+        }
 
         res.json({
             success: true,
@@ -75,7 +82,7 @@ router.get('/profile', async (req, res) => {
 // Send message endpoint
 router.post('/send', async (req, res) => {
     try {
-        if (!isReady()) {
+        if (!whatsapp.isReady()) {
             return res.status(400).json({
                 success: false,
                 error: 'WhatsApp is not connected'
@@ -94,7 +101,7 @@ router.post('/send', async (req, res) => {
         // Format phone number (add country code format)
         const formattedPhone = phone.includes('@c.us') ? phone : `${phone}@c.us`;
 
-        await client.sendMessage(formattedPhone, message);
+        await whatsapp.sendMessage(formattedPhone, message);
 
         res.json({
             success: true,
@@ -114,7 +121,7 @@ router.post('/send-welcome', async (req, res) => {
     try {
         console.log('📨 Send-welcome request received:', JSON.stringify(req.body));
 
-        if (!isReady()) {
+        if (!whatsapp.isReady()) {
             console.log('❌ WhatsApp not ready');
             return res.status(400).json({
                 success: false,
@@ -173,7 +180,7 @@ ${webappLink || 'https://x.com'}
 *فريق EstateNexus* 🏢`;
 
         // Add timeout to prevent hanging
-        const sendPromise = client.sendMessage(formattedPhone, welcomeMessage);
+        const sendPromise = whatsapp.sendMessage(formattedPhone, welcomeMessage);
         const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Message send timeout after 30 seconds')), 30000)
         );
@@ -200,10 +207,11 @@ ${webappLink || 'https://x.com'}
 // Logout/Disconnect endpoint
 router.post('/logout', async (req, res) => {
     try {
-        await client.logout();
+        // We call the custom logout which handles re-initialization
+        await whatsapp.logout();
         res.json({
             success: true,
-            message: 'Logged out successfully'
+            message: 'Logged out successfully. The client is re-initializing.'
         });
     } catch (error) {
         console.error('Error logging out:', error);
@@ -213,5 +221,6 @@ router.post('/logout', async (req, res) => {
         });
     }
 });
+
 
 module.exports = router;
