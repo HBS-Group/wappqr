@@ -6,7 +6,7 @@ router.get('/qr', (req, res) => {
     if (whatsapp.isReady()) {
         return res.json({
             status: 'connected',
-            message: 'WhatsApp is already connected'
+            message: 'WhatsApp is already connected.'
         });
     }
 
