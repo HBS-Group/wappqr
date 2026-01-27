@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const whatsappRoutes = require('./routes/whatsapp.routes');
+const salesRoutes = require('./routes/crm/sales.routes');
+const campaignRoutes = require('./routes/crm/campaigns.routes');
 
 const app = express();
 
@@ -42,6 +44,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/whatsapp', whatsappRoutes);
+app.use('/crm', salesRoutes);
+app.use('/campaigns', campaignRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
